@@ -87,7 +87,6 @@
             <label for="model">Model:</label>
             <select id="model">
                 <option value="deepseek/deepseek-r1-distill-qwen-1.5b">DeepSeek 1.5B</option>
-                <!-- Add more model options as needed -->
             </select>
         </div>
 
@@ -116,7 +115,6 @@
             responseDiv.textContent = 'Generating...';
 
             try {
-                // Send completion request
                 const response = await fetch('http://localhost:8000/completion', {
                     method: 'POST',
                     headers: {
@@ -136,7 +134,6 @@
                 const data = await response.json();
                 responseDiv.textContent = data.answer;
 
-                // Get usage statistics
                 const usageResponse = await fetch(`http://localhost:8000/usage/${apiKey}`, {
                     headers: {
                         'X-API-Key': apiKey

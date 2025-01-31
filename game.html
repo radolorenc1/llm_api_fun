@@ -121,13 +121,11 @@
             if (!isGameActive) return;
             
             const cell = document.querySelector(`[data-index="${cellIndex}"]`);
-            if (cell.textContent) return; // Cell already taken
+            if (cell.textContent) return;
 
-            // Update UI immediately
             cell.textContent = 'X';
             cell.classList.add('X');
 
-            // Disable board while AI is thinking
             const board = document.getElementById('board');
             board.classList.add('thinking');
             document.getElementById('status').textContent = 'AI is thinking...';
@@ -152,12 +150,10 @@
                 const data = await response.json();
                 gameId = data.game_id;
 
-                // Update board with AI move
                 const aiCell = document.querySelector(`[data-index="${data.ai_move}"]`);
                 aiCell.textContent = 'O';
                 aiCell.classList.add('O');
 
-                // Update game status
                 updateGameStatus(data.game_status, data.message);
 
             } catch (error) {
@@ -186,20 +182,17 @@
         }
 
         function startNewGame() {
-            // Reset the board
             const cells = document.querySelectorAll('.cell');
             cells.forEach(cell => {
                 cell.textContent = '';
                 cell.classList.remove('X', 'O');
             });
 
-            // Reset game state
             gameId = null;
             isGameActive = true;
             document.getElementById('status').textContent = 'Your turn! You are X';
         }
 
-        // Initialize the game
         document.querySelectorAll('.cell').forEach(cell => {
             cell.addEventListener('click', () => {
                 const index = cell.getAttribute('data-index');

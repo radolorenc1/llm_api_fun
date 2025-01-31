@@ -10,28 +10,23 @@ from datetime import datetime
 import sqlite3
 from fastapi.middleware.cors import CORSMiddleware
 
-# Load environment variables
 load_dotenv()
 
-# Initialize FastAPI
 app = FastAPI(title="AI Completion Service")
 
-# Add after app = FastAPI(title="AI Completion Service")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize OpenAI client
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.environ.get('DEEPSEEK_API_KEY'),
 )
 
-# Models
 class Question(BaseModel):
     content: str
     model: Optional[str] = "deepseek/deepseek-r1-distill-qwen-1.5b"
@@ -41,7 +36,6 @@ class Response(BaseModel):
     tokens_used: int
     timestamp: str
 
-# Setup database
 def init_db():
     conn = sqlite3.connect('usage.db')
     c = conn.cursor()
@@ -52,17 +46,13 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Authentication
 api_key_header = APIKeyHeader(name="X-API-Key")
 
 def verify_api_key(api_key: str = Depends(api_key_header)):
-    # In a real application, you would verify against your database
     if not api_key:
         raise HTTPException(status_code=401, detail="API Key required")
-    # Add your API key verification logic here
     return api_key
 
-# Routes
 @app.post("/completion", response_model=Response)
 async def get_completion(question: Question, api_key: str = Depends(verify_api_key)):
     try:
@@ -82,7 +72,6 @@ async def get_completion(question: Question, api_key: str = Depends(verify_api_k
             timestamp=datetime.now().isoformat()
         )
         
-        # Log usage
         conn = sqlite3.connect('usage.db')
         c = conn.cursor()
         c.execute("INSERT INTO usage_logs VALUES (?, ?, ?)",

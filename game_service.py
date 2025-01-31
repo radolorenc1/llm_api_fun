@@ -10,17 +10,13 @@ import json
 import uuid
 import logging
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
 load_dotenv()
 
-# Initialize FastAPI
 app = FastAPI(title="AI Game Service")
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,13 +25,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize OpenAI client
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.environ.get('DEEPSEEK_API_KEY'),
 )
 
-# Game state storage
 games: Dict[str, Dict] = {}
 
 class GameMove(BaseModel):
@@ -85,11 +79,10 @@ def check_valid_move(board: List[str], move: int) -> bool:
     return board[move] == "-"
 
 def check_winner(board: List[str]) -> str:
-    # Check rows, columns and diagonals
     win_combinations = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
-        [0, 4, 8], [2, 4, 6]  # diagonals
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
     ]
     
     for combo in win_combinations:
@@ -104,7 +97,6 @@ def check_winner(board: List[str]) -> str:
 @app.post("/game/move", response_model=GameResponse)
 async def make_move(move_data: GameMove):
     try:
-        # Create new game if game_id not provided
         if not move_data.game_id:
             game_id = str(uuid.uuid4())
             games[game_id] = {
@@ -116,11 +108,9 @@ async def make_move(move_data: GameMove):
             if game_id not in games:
                 raise HTTPException(status_code=404, detail="Game not found")
 
-        # Get current game state
         game = games[game_id]
         board = game["board"]
 
-        # Process player move
         try:
             player_move = int(move_data.move)
             if not check_valid_move(board, player_move):
@@ -129,7 +119,6 @@ async def make_move(move_data: GameMove):
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid move format")
 
-        # Check if game is over after player move
         game_state = check_winner(board)
         if game_state in ["X", "draw"]:
             return GameResponse(
@@ -140,7 +129,6 @@ async def make_move(move_data: GameMove):
                 message="You won!" if game_state == "X" else "It's a draw!"
             )
 
-        # Get AI move
         prompt = create_game_prompt(move_data.game_type, board, move_data.move)
         logger.info(f"Sending prompt to AI: {prompt}")
         
@@ -152,13 +140,11 @@ async def make_move(move_data: GameMove):
             ]
         )
 
-        # Parse AI response
         try:
             response_content = completion.choices[0].message.content
             logger.info(f"AI response: {response_content}")
             ai_response = json.loads(response_content)
             
-            # Clean up the move value
             move_str = str(ai_response["move"]).strip().split('-')[0]  # Handle cases like "2-"
             ai_move = int(move_str)
             
@@ -170,7 +156,6 @@ async def make_move(move_data: GameMove):
             
             board[ai_move] = "O"
             
-            # Check if game is over after AI move
             game_state = check_winner(board)
             if game_state == "O":
                 ai_response["game_status"] = "won"
@@ -181,10 +166,9 @@ async def make_move(move_data: GameMove):
             
         except (json.JSONDecodeError, ValueError, KeyError) as e:
             logger.error(f"Error parsing AI response: {e}")
-            # Try to make a random valid move as fallback
             empty_positions = [i for i, val in enumerate(board) if val == "-"]
             if empty_positions:
-                ai_move = empty_positions[0]  # Take first available position
+                ai_move = empty_positions[0]
                 board[ai_move] = "O"
                 ai_response = {
                     "game_status": "ongoing",
@@ -193,7 +177,6 @@ async def make_move(move_data: GameMove):
             else:
                 raise HTTPException(status_code=500, detail="No valid moves available")
 
-        # Update game state
         games[game_id]["board"] = board
 
         return GameResponse(
