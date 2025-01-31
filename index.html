@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Completion Service</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #response {
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+
+        .stats {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Completion Service</h1>
+        
+        <div class="input-group">
+            <label for="apiKey">API Key:</label>
+            <input type="text" id="apiKey" placeholder="Enter your API key">
+        </div>
+
+        <div class="input-group">
+            <label for="model">Model:</label>
+            <select id="model">
+                <option value="deepseek/deepseek-r1-distill-qwen-1.5b">DeepSeek 1.5B</option>
+                <!-- Add more model options as needed -->
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="prompt">Prompt:</label>
+            <textarea id="prompt" placeholder="Enter your prompt here"></textarea>
+        </div>
+
+        <button onclick="sendRequest()">Generate</button>
+
+        <div id="response"></div>
+        <div id="error" class="error"></div>
+        <div id="stats" class="stats"></div>
+    </div>
+
+    <script>
+        async function sendRequest() {
+            const apiKey = document.getElementById('apiKey').value;
+            const prompt = document.getElementById('prompt').value;
+            const model = document.getElementById('model').value;
+            const responseDiv = document.getElementById('response');
+            const errorDiv = document.getElementById('error');
+            const statsDiv = document.getElementById('stats');
+
+            errorDiv.textContent = '';
+            responseDiv.textContent = 'Generating...';
+
+            try {
+                // Send completion request
+                const response = await fetch('http://localhost:8000/completion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        content: prompt,
+                        model: model
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                responseDiv.textContent = data.answer;
+
+                // Get usage statistics
+                const usageResponse = await fetch(`http://localhost:8000/usage/${apiKey}`, {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+                
+                if (usageResponse.ok) {
+                    const usageData = await usageResponse.json();
+                    statsDiv.textContent = `Total tokens used: ${usageData.total_tokens_used}`;
+                }
+
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                responseDiv.textContent = '';
+            }
+        }
+    </script>
+</body>
+</html> 
